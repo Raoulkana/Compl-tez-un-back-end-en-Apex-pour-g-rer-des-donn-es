@@ -1,4 +1,4 @@
-Transporteur ID;Pays;Tarif;Délai de Livraison (jours)
+Transporteur__r.ExternalId__c,Pays__c,Prix__c,Delai__c
 1;France;20;1
 1;Belgique;18;3
 1;Suisse;12;4

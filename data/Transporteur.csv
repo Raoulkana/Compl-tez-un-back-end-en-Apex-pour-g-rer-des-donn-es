@@ -1,16 +1,18 @@
-Id;Nom;Type Client
-1;Chronopost;Particulier, Professionnel
-2;DHL Express;Professionnel
-3;La Poste;Particulier
-4;UPS;Particulier, Professionnel
-5;FedEx;Professionnel
-6;GLS;Particulier
-7;Mondial Relay;Particulier
-8;TNT;Professionnel
-9;Colis Privé;Particulier
-10;DB Schenker;Professionnel
-11;Geodis;Particulier, Professionnel
-12;Amazon Logistics;Particulier
-13;DPD;Particulier, Professionnel
-14;XPO Logistics;Professionnel
-15;Hermes;Particulier
+ExternalId__c,Name,TypeClient__c,IsActive__c
+1;Chronopost;Particulier;true
+1;Chronopost;Professionnel;true
+2;DHL Express;Professionnel;true
+3;La Poste;Particulier;true
+4;UPS;Particulier;true
+4;UPS;Professionnel;true
+5;FedEx;Professionnel;true
+6;GLS;Particulier;true
+7;Mondial Relay;Particulier;true
+8;TNT;Professionnel;true
+9;DPD;Particulier;true
+10;Hermes;Particulier;true
+11;Colissimo;Particulier;true
+12;Bpost;Particulier;true
+13;Swiss Post;Particulier;true
+14;Post Luxembourg;Particulier;true
+15;Relais Colis;Particulier;true
