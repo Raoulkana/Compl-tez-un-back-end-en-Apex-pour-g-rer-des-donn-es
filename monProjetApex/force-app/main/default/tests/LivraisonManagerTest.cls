@@ -4,7 +4,7 @@ public class LivraisonManagerTest {
     @TestSetup
     static void setupData() {
         // Compte
-        Account acc = new Account(Name='Test Account', Type='Customer');
+        Account acc = new Account(Name='Test Account', Type='Particulier');
         insert acc;
 
         // Pricebook standard
