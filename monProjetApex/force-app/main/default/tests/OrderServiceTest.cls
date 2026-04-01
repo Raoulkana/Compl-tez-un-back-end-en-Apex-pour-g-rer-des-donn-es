@@ -3,88 +3,99 @@ public class OrderServiceTest {
 
     @TestSetup
     static void setupData() {
-        // Créer un compte pour les commandes
-        Account acc = new Account(Name='Test Account');
+        // Compte
+        Account acc = new Account(Name='Test Account', Type='Customer');
         insert acc;
 
-        // Commande activée avec un item
+        // Pricebook standard
+        Id pbId = Test.getStandardPricebookId();
+
+        // Produit actif
+        Product2 prod = new Product2(Name='Produit Test', IsActive=true);
+        insert prod;
+
+        // PricebookEntry
+        PricebookEntry pbe = new PricebookEntry(Pricebook2Id=pbId, Product2Id=prod.Id, UnitPrice=100, IsActive=true);
+        insert pbe;
+
+        // Commande activable
         Order ord = new Order(
             AccountId = acc.Id,
             EffectiveDate = Date.today(),
-            Status = 'Activated',
+            Status = 'Draft',
+            Pricebook2Id = pbId,
             ShippingCountry = 'United States'
         );
         insert ord;
 
-        // Item de commande
-        Product2 prod = new Product2(Name='Produit Test', IsActive=true);
-        insert prod;
-
-        OrderItem oi = new OrderItem(
+        // OrderItem
+        OrderItem item = new OrderItem(
             OrderId = ord.Id,
-            Quantity = 2,
-            UnitPrice = 50,
-            PricebookEntryId = Test.getStandardPricebookId() != null ?
-                               [SELECT Id FROM PricebookEntry WHERE Pricebook2Id = :Test.getStandardPricebookId() AND Product2Id = :prod.Id LIMIT 1].Id :
-                               null
+            PricebookEntryId = pbe.Id,
+            Quantity = 1,
+            UnitPrice = 100
         );
-        insert oi;
+        insert item;
 
-        // Commande non activée
-        Order ordInactive = new Order(
-            AccountId = acc.Id,
-            EffectiveDate = Date.today(),
-            Status = 'Draft',
-            ShippingCountry = 'United States'
-        );
-        insert ordInactive;
-
-        // Commande activée mais sans items
-        Order ordEmpty = new Order(
-            AccountId = acc.Id,
-            EffectiveDate = Date.today(),
-            Status = 'Activated',
-            ShippingCountry = 'United States'
-        );
-        insert ordEmpty;
+        // Activation commande
+        ord.Status = 'Activated';
+        update ord;
     }
 
     @IsTest
     static void testValidateOrderSuccess() {
-        Order ord = [SELECT Id FROM Order WHERE Status='Activated' LIMIT 1];
-
+        Order ord = [SELECT Id, Status FROM Order WHERE Status='Activated' LIMIT 1];
         Test.startTest();
-        // Ne doit pas lever d'exception
         OrderService.validateOrder(ord);
         Test.stopTest();
     }
 
     @IsTest
     static void testValidateOrderNotActivated() {
-        Order ord = [SELECT Id FROM Order WHERE Status='Draft' LIMIT 1];
+        // Nouvelle commande Draft pour test
+        Account acc = new Account(Name='Temp Account', Type='Customer');
+        insert acc;
 
-        Test.startTest();
+        Id pbId = Test.getStandardPricebookId();
+        Product2 prod = new Product2(Name='Temp Prod', IsActive=true);
+        insert prod;
+        PricebookEntry pbe = new PricebookEntry(Pricebook2Id=pbId, Product2Id=prod.Id, UnitPrice=100, IsActive=true);
+        insert pbe;
+
+        Order ord = new Order(AccountId=acc.Id, EffectiveDate=Date.today(), Status='Draft', Pricebook2Id=pbId, ShippingCountry='United States');
+        insert ord;
+
         try {
+            Test.startTest();
             OrderService.validateOrder(ord);
-            System.assert(false, 'Une exception doit être levée pour une commande non activée');
+            Test.stopTest();
+            System.assert(false, 'La commande non activée aurait dû générer une exception');
         } catch (AuraHandledException e) {
             System.assertEquals('Commande non activée', e.getMessage());
         }
-        Test.stopTest();
     }
 
     @IsTest
     static void testValidateOrderEmpty() {
-        Order ord = [SELECT Id FROM Order WHERE Status='Activated' 
-                     AND Id NOT IN (SELECT OrderId FROM OrderItem) LIMIT 1];
+        // Nouvelle commande activée sans OrderItem
+        Account acc = new Account(Name='Temp Account 2', Type='Customer');
+        insert acc;
 
-        Test.startTest();
+        Id pbId = Test.getStandardPricebookId();
+        Order ord = new Order(AccountId=acc.Id, EffectiveDate=Date.today(), Status='Draft', Pricebook2Id=pbId, ShippingCountry='United States');
+        insert ord;
+
+        // Activation sans produit
+        ord.Status = 'Activated';
+        update ord;
+
         try {
+            Test.startTest();
             OrderService.validateOrder(ord);
-            System.assert(false, 'Une exception doit être levée pour une commande vide');
+            Test.stopTest();
+            System.assert(false, 'Une commande vide aurait dû générer une exception');
         } catch (AuraHandledException e) {
             System.assertEquals('Commande vide', e.getMessage());
         }
-        Test.stopTest();
     }
 }
