@@ -3,20 +3,32 @@ public with sharing class TarifLivraisonService {
     @AuraEnabled(cacheable=true)
     public static List<TarifLivraison__c> getTarifs(Id orderId){
 
-        Order ord = [
+        // Récupérer la commande
+        List<Order> orders = [
             SELECT Id, Pays__c, Account_Type__c
             FROM Order
             WHERE Id = :orderId
+            LIMIT 1
         ];
 
+        if (orders.isEmpty()) {
+            return new List<TarifLivraison__c>();
+        }
+
+        Order ord = orders[0];
+
+        // Récupérer les tarifs correspondants
         return [
             SELECT Id,
                    Prix__c,
                    Delai__c,
-                   Transporteur__r.Name
+                   Transporteur__r.Id,
+                   Transporteur__r.Name,
+                   Transporteur__r.TypeClient__c
             FROM TarifLivraison__c
             WHERE Pays__c = :ord.Pays__c
             AND TypeClient__c = :ord.Account_Type__c
+            ORDER BY Prix__c ASC
         ];
     }
 }

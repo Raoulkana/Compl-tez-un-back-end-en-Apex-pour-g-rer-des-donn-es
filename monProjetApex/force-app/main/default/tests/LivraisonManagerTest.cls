@@ -4,75 +4,75 @@ public class LivraisonManagerTest {
     @TestSetup
     static void setupData() {
         // Compte
-        Account acc = new Account(Name='Test Account', Type='Particulier');
+        Account acc = new Account(Name='Test Account');
         insert acc;
 
-        // Pricebook standard
-        Id pbId = Test.getStandardPricebookId();
-
-        // Produit actif
-        Product2 prod = new Product2(Name='Produit Test', IsActive=true);
-        insert prod;
-
-        // PricebookEntry
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = pbId,
-            Product2Id = prod.Id,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert pbe;
-
-        // Commande
+        // Commande activée
         Order ord = new Order(
+            Name = 'Commande Test',
             AccountId = acc.Id,
-            EffectiveDate = Date.today(),
-            Status = 'Draft',
-            Pricebook2Id = pbId,
-            ShippingCountry = 'United States'
+            Status = 'Activated',
+            Pays__c = 'France',
+            Account_Type__c = 'VIP'
         );
         insert ord;
 
-        // OrderItem pour permettre activation
-        OrderItem item = new OrderItem(
-            OrderId = ord.Id,
-            PricebookEntryId = pbe.Id,
-            Quantity = 1,
-            UnitPrice = 100
-        );
-        insert item;
-
-        // Activation commande
-        ord.Status = 'Activated';
-        update ord;
-
-        // Transporteur avec picklist valide
-        Transporteur__c t = new Transporteur__c(Name='Chronopost', TypeClient__c='Particulier');
+        // Transporteur
+        Transporteur__c t = new Transporteur__c(Name='Chronopost', TypeClient__c='VIP');
         insert t;
 
         // Tarif livraison
         TarifLivraison__c tarif = new TarifLivraison__c(
             Transporteur__c = t.Id,
-            Pays__c = 'United States',
-            Prix__c = 10,
-            Delai__c = 3
+            Pays__c = 'France',
+            TypeClient__c = 'VIP',
+            Prix__c = 100,
+            Delai__c = 2
         );
         insert tarif;
     }
 
     @IsTest
     static void testCreateLivraison() {
-        Order ord = [SELECT Id, Status, ShippingCountry, Account.Type FROM Order WHERE Status='Activated' LIMIT 1];
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        TarifLivraison__c tarif = [SELECT Id FROM TarifLivraison__c LIMIT 1];
 
         Test.startTest();
-        Livraison__c liv = LivraisonManager.createLivraison(ord.Id);
+        Id livId = LivraisonManager.createLivraison(ord.Id, tarif.Id);
         Test.stopTest();
 
-        System.assertNotEquals(null, liv.Id);
-        System.assertEquals(ord.Id, liv.Order__c);
-        System.assertEquals('En préparation', liv.Statut__c);
-        System.assertEquals(System.today(), liv.DateExpedition__c);
-        System.assertEquals(System.today().addDays(3), liv.DateLivraisonEstimee__c);
-        System.assertNotEquals(null, liv.Transporteur__c);
+        Livraison__c liv = [SELECT Id, Order__c, Tarif__c FROM Livraison__c WHERE Id = :livId];
+        System.assertNotEquals(null, liv.Id, 'Livraison créée');
+        System.assertEquals(ord.Id, liv.Order__c, 'OrderId doit correspondre');
+        System.assertEquals(tarif.Id, liv.Tarif__c, 'TarifId doit correspondre');
+    }
+
+    @IsTest
+    static void testUpdateLivraison() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        TarifLivraison__c tarif = [SELECT Id FROM TarifLivraison__c LIMIT 1];
+
+        Livraison__c liv = new Livraison__c(
+            Order__c = ord.Id,
+            Tarif__c = tarif.Id
+        );
+        insert liv;
+
+        // Nouveau tarif
+        TarifLivraison__c newTarif = new TarifLivraison__c(
+            Transporteur__c = [SELECT Id FROM Transporteur__c LIMIT 1].Id,
+            Pays__c = 'France',
+            TypeClient__c = 'VIP',
+            Prix__c = 120,
+            Delai__c = 1
+        );
+        insert newTarif;
+
+        Test.startTest();
+        LivraisonManager.updateLivraison(liv.Id, newTarif.Id);
+        Test.stopTest();
+
+        Livraison__c livUpdated = [SELECT Tarif__c FROM Livraison__c WHERE Id = :liv.Id];
+        System.assertEquals(newTarif.Id, livUpdated.Tarif__c, 'Tarif doit être mis à jour');
     }
 }

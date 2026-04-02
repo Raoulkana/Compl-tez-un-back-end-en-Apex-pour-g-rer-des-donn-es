@@ -10,10 +10,13 @@ public with sharing class OrderTarifService {
             LIMIT 1
         ];
 
+        if(ord == null) {
+            return new List<TarifLivraison__c>();
+        }
+
         return TransporterSelector.getTarifsByPaysAndClientType(
             ord.Pays__c,
             ord.Account_Type__c
         );
     }
-
 }
