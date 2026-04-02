@@ -1,0 +1,8 @@
+.button-container { text-align: right; margin-bottom: 1rem; }
+
+.tarifs-table th { background-color: #f4f6f9; }
+
+.tarifs-table tr.cheapest-row { background-color: #dff0d8; }
+.tarifs-table tr.fastest-row { background-color: #d9edf7; }
+
+.no-tarifs { font-style: italic; color: #666; }
