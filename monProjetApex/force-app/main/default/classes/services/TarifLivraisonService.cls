@@ -1,21 +1,15 @@
 public with sharing class TarifLivraisonService {
 
     @AuraEnabled(cacheable=true)
-    public static List<TarifLivraison__c> getTarifs(Id orderId){
+    public static List<TarifLivraison__c> getTarifLivraison(Id orderId){
 
         // Récupérer la commande
-        List<Order> orders = [
+        Order ord = [
             SELECT Id, Pays__c, Account_Type__c
             FROM Order
             WHERE Id = :orderId
             LIMIT 1
         ];
-
-        if (orders.isEmpty()) {
-            return new List<TarifLivraison__c>();
-        }
-
-        Order ord = orders[0];
 
         // Récupérer les tarifs correspondants
         return [

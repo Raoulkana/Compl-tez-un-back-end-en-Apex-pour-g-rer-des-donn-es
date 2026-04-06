@@ -1,0 +1,16 @@
+Id;Nom;Type Client
+1;Chronopost;Particulier, Professionnel
+2;DHL Express;Professionnel
+3;La Poste;Particulier
+4;UPS;Particulier, Professionnel
+5;FedEx;Professionnel
+6;GLS;Particulier
+7;Mondial Relay;Particulier
+8;TNT;Professionnel
+9;Colis Privé;Particulier
+10;DB Schenker;Professionnel
+11;Geodis;Particulier, Professionnel
+12;Amazon Logistics;Particulier
+13;DPD;Particulier, Professionnel
+14;XPO Logistics;Professionnel
+15;Hermes;Particulier

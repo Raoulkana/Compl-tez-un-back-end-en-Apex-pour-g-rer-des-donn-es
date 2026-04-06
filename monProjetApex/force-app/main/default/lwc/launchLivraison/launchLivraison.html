@@ -1,7 +1,7 @@
 <template>
     <lightning-card title="Gestion des Livraisons" icon-name="standard:shipment">
 
-        <!-- Sélection de la commande -->
+        <!-- Sélection commande -->
         <lightning-combobox
             name="order"
             label="Commande"
@@ -11,56 +11,119 @@
             onchange={handleOrderChange}>
         </lightning-combobox>
 
-        <!-- Boutons Créer / Mettre à jour -->
-        <div class="button-container slds-m-top_medium">
+        <!-- Informations commande -->
+        <template if:true={orderDetails}>
+            <div class="slds-box slds-m-top_medium">
+
+                <p><strong>Commande :</strong> {orderDetails.OrderNumber}</p>
+
+                <p><strong>Compte :</strong>
+                    <template if:true={orderDetails.Account}>
+                        {orderDetails.Account.Name}
+                    </template>
+                </p>
+
+                <p><strong>Pays :</strong> {orderDetails.Pays__c}</p>
+
+                <p><strong>Type Client :</strong> {orderDetails.Account_Type__c}</p>
+
+                <p><strong>Status :</strong> {orderDetails.Status}</p>
+
+                <p><strong>Date :</strong> {orderDetails.EffectiveDate}</p>
+
+                <p><strong>Montant :</strong> {orderDetails.TotalAmount} €</p>
+
+            </div>
+        </template>
+
+        <!-- Boutons -->
+        <div class="slds-m-top_medium">
+
             <template if:false={hasLivraison}>
-                <lightning-button label="Créer BDL" variant="brand"
-                    onclick={handleCreateLivraison} disabled={isCreateDisabled}>
+                <lightning-button
+                    label="Créer BDL"
+                    variant="brand"
+                    onclick={handleCreateLivraison}
+                    disabled={isCreateDisabled}>
                 </lightning-button>
             </template>
+
             <template if:true={hasLivraison}>
-                <lightning-button label="Changer Transporteur" variant="neutral"
-                    onclick={handleUpdate} disabled={isUpdateDisabled}>
+                <lightning-button
+                    label="Changer Transporteur"
+                    variant="neutral"
+                    onclick={handleUpdate}
+                    disabled={isUpdateDisabled}>
                 </lightning-button>
             </template>
+
         </div>
 
-        <!-- Tableau des tarifs -->
-        <template if:true={tarifs}>
+        <!-- Tableau tarifs -->
+        <template if:false={noTarifs}>
+
             <div class="slds-m-top_medium">
-                <table class="slds-table slds-table_cell-buffer slds-table_bordered tarifs-table">
+
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+
                     <thead>
                         <tr>
-                            <th style="width:3rem;"></th>
+                            <th></th>
                             <th>Tarification</th>
                         </tr>
                     </thead>
+
                     <tbody>
+
                         <template for:each={tarifs} for:item="t">
+
                             <tr key={t.Id} class={t.rowClass}>
+
                                 <td>
                                     <lightning-input
                                         type="radio"
                                         name="transportChoice"
                                         value={t.Id}
-                                        onchange={handleSelection}
-                                        checked={t.isSelected}>
+                                        checked={t.isSelected}
+                                        onchange={handleSelection}>
                                     </lightning-input>
                                 </td>
+
                                 <td>
-                                    <template if:true={t.isFastest}><strong>Transporteur le plus rapide : </strong></template>
-                                    <template if:true={t.isCheapest}><strong>Transporteur le moins cher : </strong></template>
-                                    {t.Transporteur__r.Name} ({t.Pays__c} : Client {t.TypeClient__c};
-                                    {t.Prix__c} € ; {t.Delai__c} jour(s))
+
+                                    <template if:true={t.isFastest}>
+                                        <strong>Transporteur le plus rapide :</strong>
+                                    </template>
+
+                                    <template if:true={t.isCheapest}>
+                                        <strong>Transporteur le moins cher :</strong>
+                                    </template>
+
+                                    {t.Transporteur__r.Name}
+                                    ({t.Pays__c} - Client {t.TypeClient__c}
+                                    | {t.Prix__c} €
+                                    | {t.Delai__c} jours)
+
                                 </td>
+
                             </tr>
+
                         </template>
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </template>
+
+        <!-- Aucun tarif -->
         <template if:true={noTarifs}>
-            <p class="no-tarifs">Aucun tarif disponible pour cette commande.</p>
+            <p class="slds-m-top_medium slds-text-color_weak">
+                Aucun tarif disponible pour cette commande.
+            </p>
         </template>
+
     </lightning-card>
 </template>
