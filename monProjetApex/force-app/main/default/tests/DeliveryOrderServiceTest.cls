@@ -1,20 +1,29 @@
 @IsTest
 public class DeliveryOrderServiceTest {
 
+    private static final String DEFAULT_STATUT = 'En préparation';
+
     @TestSetup
     static void setupData() {
-        // --- Création compte ---
-        Account acc = new Account(Name='Test Account', Type='Particulier');
+
+        // ---------- Account ----------
+        Account acc = new Account(
+            Name = 'Test Account',
+            Type = 'Particulier'
+        );
         insert acc;
 
-        // --- Pricebook standard ---
+        // ---------- Standard Pricebook ----------
         Id pbId = Test.getStandardPricebookId();
 
-        // --- Produit actif ---
-        Product2 prod = new Product2(Name='Produit Test', IsActive=true);
+        // ---------- Product ----------
+        Product2 prod = new Product2(
+            Name = 'Produit Test',
+            IsActive = true
+        );
         insert prod;
 
-        // --- PricebookEntry ---
+        // ---------- PricebookEntry ----------
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = pbId,
             Product2Id = prod.Id,
@@ -23,17 +32,17 @@ public class DeliveryOrderServiceTest {
         );
         insert pbe;
 
-        // --- Commande ---
+        // ---------- Order ----------
         Order ord = new Order(
             AccountId = acc.Id,
             EffectiveDate = Date.today(),
-            Status = 'Activated',
+            Status = 'Draft',
             Pricebook2Id = pbId,
-            ShippingCountry = 'United States'
+            Pays__c = 'United States'
         );
         insert ord;
 
-        // --- OrderItem ---
+        // ---------- OrderItem ----------
         OrderItem item = new OrderItem(
             OrderId = ord.Id,
             PricebookEntryId = pbe.Id,
@@ -42,13 +51,17 @@ public class DeliveryOrderServiceTest {
         );
         insert item;
 
-        // --- Transporteur ---
-        Transporteur__c t = new Transporteur__c(Name='Chronopost', TypeClient__c='Particulier');
-        insert t;
+        // ---------- Transporteur ----------
+        Transporteur__c transporteur = new Transporteur__c(
+            Name = 'Chronopost',
+            TypeClient__c = 'Particulier'
+        );
+        insert transporteur;
 
-        // --- Tarif livraison ---
+        // ---------- Tarif Livraison ----------
         TarifLivraison__c tarif = new TarifLivraison__c(
-            Transporteur__c = t.Id,
+            Name = 'Tarif Standard',
+            Transporteur__c = transporteur.Id,
             Pays__c = 'United States',
             Prix__c = 10,
             Delai__c = 3
@@ -56,39 +69,103 @@ public class DeliveryOrderServiceTest {
         insert tarif;
     }
 
+    // =============================
+    // TEST createByOrderIds
+    // =============================
     @IsTest
-    static void testCreateAndGetLivraison() {
-        // Récupération commande de test
-        Order ord = [SELECT Id FROM Order WHERE Status='Activated' LIMIT 1];
+    static void testCreateByOrderIds() {
+
+        Order ord = [SELECT Id FROM Order LIMIT 1];
         TarifLivraison__c tarif = [SELECT Id FROM TarifLivraison__c LIMIT 1];
 
-        Map<Id, Id> selectedTarif = new Map<Id, Id>{ ord.Id => tarif.Id };
+        Map<Id, Id> selectedTarif = new Map<Id, Id>{
+            ord.Id => tarif.Id
+        };
 
         Test.startTest();
-        // --- Création livraison ---
         Map<Id, Id> result = DeliveryOrderService.createByOrderIds(
-            new List<Id>{ord.Id},
-            selectedTarif
+            new List<Id>{ord.Id}, selectedTarif
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, result.get(ord.Id), 'Livraison non créée');
+        System.assertEquals(1, result.size(), 'Une livraison doit être créée');
 
-        // --- Vérification récupération ---
-        Map<Id, List<Livraison__c>> livMap = DeliveryOrderService.getByOrderIds(new List<Id>{ord.Id});
-        System.assertEquals(1, livMap.get(ord.Id).size(), 'Livraison non trouvée');
+        Id livId = result.get(ord.Id);
+        Livraison__c liv = [
+            SELECT Id, Order__c, Tarif__c, Statut__c
+            FROM Livraison__c
+            WHERE Id = :livId
+        ];
 
-        // --- Mise à jour ---
-        Livraison__c liv = livMap.get(ord.Id)[0];
-        Test.startTest();
-        DeliveryOrderService.updateByIds(
-            new List<Id>{liv.Id},
-            new Map<Id, Id>{ liv.Id => tarif.Id }
-        );
-        Test.stopTest();
-
-        // Vérifier que le tarif est toujours correct après mise à jour
-        Livraison__c updatedLiv = [SELECT Id, Tarif__c FROM Livraison__c WHERE Id=:liv.Id];
-        System.assertEquals(tarif.Id, updatedLiv.Tarif__c, 'Le Tarif de la livraison n’a pas été mis à jour correctement');
+        System.assertEquals(ord.Id, liv.Order__c);
+        System.assertEquals(tarif.Id, liv.Tarif__c);
+        System.assertEquals(DEFAULT_STATUT, liv.Statut__c, 'Statut incorrect');
     }
+
+    // =============================
+    // TEST getByOrderIds
+    // =============================
+    @IsTest
+    static void testGetByOrderIds() {
+
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        TarifLivraison__c tarif = [SELECT Id FROM TarifLivraison__c LIMIT 1];
+
+        Livraison__c liv = new Livraison__c(
+            Order__c = ord.Id,
+            Tarif__c = tarif.Id,
+            Statut__c = DEFAULT_STATUT
+        );
+        insert liv;
+
+        Test.startTest();
+        Map<Id, List<Livraison__c>> result = DeliveryOrderService.getByOrderIds(
+            new List<Id>{ord.Id}
+        );
+        Test.stopTest();
+
+        System.assert(result.containsKey(ord.Id), 'La commande doit exister dans la map');
+        List<Livraison__c> livraisons = result.get(ord.Id);
+        System.assertEquals(1, livraisons.size(), 'Une livraison attendue');
+        System.assertEquals(ord.Id, livraisons[0].Order__c);
+        System.assertEquals(DEFAULT_STATUT, livraisons[0].Statut__c, 'Statut incorrect');
+    }
+
+    // =============================
+    // TEST updateByIds
+    // =============================
+    @IsTest
+    static void testUpdateByIds() {
+
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        Transporteur__c transporteur = [SELECT Id FROM Transporteur__c LIMIT 1];
+        TarifLivraison__c tarif = [SELECT Id FROM TarifLivraison__c LIMIT 1];
+
+        Livraison__c liv = new Livraison__c(
+            Order__c = ord.Id,
+            Tarif__c = tarif.Id,
+            Statut__c = DEFAULT_STATUT
+        );
+        insert liv;
+
+        // Nouveau tarif
+        TarifLivraison__c newTarif = new TarifLivraison__c(
+            Name = 'Tarif Express',
+            Transporteur__c = transporteur.Id,
+            Pays__c = 'United States',
+            Prix__c = 20,
+            Delai__c = 1
+        );
+        insert newTarif;
+
+        Map<Id, Id> newTarifMap = new Map<Id, Id>{ liv.Id => newTarif.Id };
+
+        Test.startTest();
+        DeliveryOrderService.updateByIds(new List<Id>{liv.Id}, newTarifMap);
+        Test.stopTest();
+
+        Livraison__c updated = [SELECT Tarif__c FROM Livraison__c WHERE Id = :liv.Id];
+        System.assertEquals(newTarif.Id, updated.Tarif__c, 'Le tarif doit être mis à jour');
+    }
+
 }
