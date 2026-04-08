@@ -4,18 +4,20 @@ public with sharing class LivraisonManager {
      * Crée une livraison pour une commande et un tarif donné
      * @param orderId Id de la commande
      * @param tarifId Id du tarif choisi
-     * @return Id de la livraison créée
+     * @return Id de la livraison En préparation
      */
     @AuraEnabled
     public static Id createLivraison(Id orderId, Id tarifId) {
         if(orderId == null || tarifId == null) {
-            throw new AuraHandledException('OrderId et TarifId sont requis.');
+           AuraHandledException ex = new AuraHandledException('OrderId et TarifId sont requis');
+    ex.setMessage('OrderId et TarifId sont requis');
+    throw ex;
         }
 
         Livraison__c liv = new Livraison__c(
             Order__c = orderId,
             Tarif__c = tarifId,
-            Status__c = 'Créée' // ou tout autre champ par défaut
+            Statut__c = 'En préparation' // ou tout autre champ par défaut
         );
 
         insert liv;
@@ -31,7 +33,9 @@ public with sharing class LivraisonManager {
     @AuraEnabled
     public static void updateLivraison(Id livraisonId, Id tarifId) {
         if(livraisonId == null || tarifId == null) {
-            throw new AuraHandledException('LivraisonId et TarifId sont requis.');
+            AuraHandledException ex = new AuraHandledException('LivraisonId et TarifId sont requis');
+    ex.setMessage('LivraisonId et TarifId sont requis');
+    throw ex;
         }
 
         Livraison__c liv = [
@@ -53,7 +57,9 @@ public with sharing class LivraisonManager {
     @AuraEnabled
     public static Id launchDelivery(Id orderId) {
         if(orderId == null) {
-            throw new AuraHandledException('OrderId requis.');
+            AuraHandledException ex = new AuraHandledException('OrderId requis');
+    ex.setMessage('OrderId requis');
+    throw ex;
         }
 
         Order ord = [
@@ -67,8 +73,10 @@ public with sharing class LivraisonManager {
         Transporteur__c bestTransporteur = LivraisonService.getBestTransporteur(ord.Pays__c, ord.Account_Type__c);
 
         if(bestTransporteur == null) {
-            throw new AuraHandledException('Aucun transporteur disponible pour cette commande.');
-        }
+    AuraHandledException ex = new AuraHandledException('Aucun transporteur disponible');
+    ex.setMessage('Aucun transporteur disponible');
+    throw ex;
+}
 
         // Récupérer le tarif associé
         List<TarifLivraison__c> tarifs = [
@@ -80,8 +88,10 @@ public with sharing class LivraisonManager {
         ];
 
         if(tarifs.isEmpty()) {
-            throw new AuraHandledException('Aucun tarif disponible pour ce transporteur.');
-        }
+    AuraHandledException ex = new AuraHandledException('Aucun tarif disponible');
+    ex.setMessage('Aucun tarif disponible');
+    throw ex;
+}
 
         // Créer la livraison
         return createLivraison(orderId, tarifs[0].Id);
